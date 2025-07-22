@@ -146,7 +146,7 @@ with tab2:
         venue_date = st.date_input("Match Date")
         if st.form_submit_button("Add Venue"):
             venue_str = venue_name.strip()
-            date_str = venue_date.strftime("%Y-%m-%d")
+            date_str = venue_date.strftime("%d-%m-%Y")
             exists = not venues_df[
                 (venues_df["Venue"] == venue_str) & (venues_df["Date"] == date_str)
             ].empty
