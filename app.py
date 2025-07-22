@@ -68,7 +68,7 @@ def recalculate_balance(payment_df, expenses_df, other_income_df):
 
 # --- App Setup ---
 st.set_page_config(page_title="Match Income Tracker", layout="wide")
-st.title("🎯 Match-Based Income & Expense Tracker")
+st.title("🎯 Seaside Social Darts Management System")
 
 init_files()
 balance_df, payment_df, venues_df, players_df, expenses_df, other_income_df = load_data()
