@@ -2,6 +2,18 @@ import streamlit as st
 import pandas as pd
 import os
 from datetime import datetime
+import streamlit.components.v1 as components
+
+# Inject manifest and icons for PWA support
+components.html(
+    """
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+    <link rel="apple-touch-icon" href="/icon-512.png">
+    <meta name="theme-color" content="#4CAF50">
+    """,
+    height=0
+)
 
 st.set_page_config(
     page_title="🎯 Custom Darts App",  # Custom Title

@@ -1,6 +1,6 @@
 {
-  "name": "Custom Darts App",
-  "short_name": "Darts App",
+  "name": "Seaside Social Darts Manager",
+  "short_name": "Darts Manager",
   "description": "Manage your darts events and finances",
   "start_url": ".",
   "display": "standalone",
