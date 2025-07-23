@@ -3,6 +3,19 @@ import pandas as pd
 import os
 from datetime import datetime
 
+import streamlit.components.v1 as components
+
+# Inject manifest and icons for PWA support
+components.html(
+    """
+    <link rel="manifest" href="https://github.com/MoltenSteelStudio/DartsManager/manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="https://github.com/MoltenSteelStudio/DartsManager/icon-192.png">
+    <link rel="apple-touch-icon" href="https://github.com/MoltenSteelStudio/DartsManager/icon-512.png">
+    <meta name="theme-color" content="#4CAF50">
+    """,
+    height=0
+)
+
 # --- Constants ---
 BALANCE_FILE = "balance_sheet.csv"
 PAYMENT_FILE = "payment_sheet.csv"
