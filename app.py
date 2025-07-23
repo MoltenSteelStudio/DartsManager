@@ -15,7 +15,6 @@ components.html(
     height=0
 )
 
-# Set custom branding using st.set_page_config
 st.set_page_config(
     page_title="🎯 Custom Darts App",  # Custom Title
     page_icon="🎯",  # Custom Icon
@@ -87,7 +86,9 @@ def recalculate_balance(payment_df, expenses_df, other_income_df):
     return merged
 
 # --- App Setup ---
-st.set_page_config(page_title="🎯 Seaside Social Darts Management System", layout="wide")
+st.set_page_config(page_title="Match Income Tracker", layout="wide")
+
+st.title("🎯 Seaside Social Darts Management System")
 
 init_files()
 balance_df, payment_df, venues_df, players_df, expenses_df, other_income_df = load_data()
@@ -100,6 +101,7 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "📊 Balance Sheet",
     "📋 Log",
     "🧹 Clear Data",
+
 ])
 
 # --- Tab 1: Player Management ---
@@ -183,6 +185,8 @@ with tab2:
 # --- Tab 3: Income and Expense ---
 with tab3:
     venue_display = [f"{v} ({d})" for v, d in zip(venues_df["Venue"], venues_df["Date"])]
+
+    # --- Select match at top ---
     st.subheader("🎯 Selected Match Context")
     selected_match = st.selectbox("Venue & Date", venue_display, key="selected_match_context")
 
@@ -195,6 +199,7 @@ with tab3:
 
     st.divider()
 
+    # --- Player Payment Section ---
     st.subheader("👤 Per Player Income")
 
     def update_payment_checkboxes():
@@ -210,11 +215,13 @@ with tab3:
 
     name = st.selectbox("Player Name", players_df["Name"].tolist(), key="selected_name", on_change=update_payment_checkboxes)
 
+    # Checkboxes reflect session state
     subs = st.checkbox("Subs (£2.00)", value=st.session_state.get("subs_paid", False), key="subs_paid")
     raffle = st.checkbox("Raffle (£1.00)", value=st.session_state.get("raffle_paid", False), key="raffle_paid")
     food = st.checkbox("Food (£1.00)", value=st.session_state.get("food_paid", False), key="food_paid")
 
     with st.form("payment_form"):
+        st.markdown("### ➕ Add / Update Payment")
         rows = []
         if subs: rows.append({"Name": name, "Amount": 2.0, "Category": "Subs", "Venue": selected_venue, "Date": selected_date})
         if raffle: rows.append({"Name": name, "Amount": 1.0, "Category": "Raffle", "Venue": selected_venue, "Date": selected_date})
@@ -230,6 +237,7 @@ with tab3:
                 if raffle: keep_categories.append("Raffle")
                 if food: keep_categories.append("Food")
 
+                # Remove outdated entries
                 payment_df = payment_df[~(
                     (payment_df["Name"] == name) &
                     (payment_df["Venue"] == selected_venue) &
@@ -237,9 +245,11 @@ with tab3:
                     (~payment_df["Category"].isin(keep_categories))
                 )]
 
+                # Add new
                 if rows:
                     payment_df = pd.concat([payment_df, pd.DataFrame(rows)], ignore_index=True)
 
+                # Save and update
                 balance_df = recalculate_balance(payment_df, expenses_df, other_income_df)
                 save_data(balance_df, payment_df, venues_df, players_df, expenses_df, other_income_df)
                 st.success("Payment added/updated.")
@@ -247,6 +257,7 @@ with tab3:
 
     st.divider()
 
+    # --- Expenses & Other Income ---
     st.subheader("💸 Add Expense / Other Income")
     with st.form("add_expense_income"):
         amount = st.number_input("Expense Amount", min_value=0.0, step=0.5)
@@ -283,6 +294,7 @@ with tab3:
 
     st.divider()
 
+    # --- Match Summary (at bottom, horizontal) ---
     st.markdown("### 💹 Match Summary")
 
     match_summary = balance_df[
@@ -299,3 +311,116 @@ with tab3:
         col4.metric("Net", f"£{row['Net']:.2f}")
     else:
         st.info("No financial summary yet for this match.")
+
+# --- Tab 4: Balance Sheet ---
+with tab4:
+    st.subheader("📊 Player Contributions by Match (Columns)")
+
+    # All unique matches (venue + date)
+    match_keys = venues_df.copy()
+    match_keys["Venue_Date"] = match_keys["Venue"] + " - " + match_keys["Date"]
+
+    # Prepare base dataframe with all players
+    all_players = players_df["Name"].unique()
+
+    # Sum payment per player per match
+    payment_summary = payment_df.groupby(["Name", "Venue", "Date"])["Amount"].sum().reset_index()
+    payment_summary["Venue_Date"] = payment_summary["Venue"] + " - " + payment_summary["Date"]
+
+    # Create pivot with players as rows, matches as columns
+    pivot = payment_summary.pivot(index="Name", columns="Venue_Date", values="Amount")
+
+    # Ensure all players are present
+    pivot = pivot.reindex(all_players, fill_value=0)
+
+    # Ensure all matches (columns) are present
+    all_columns = match_keys["Venue_Date"].tolist()
+    pivot = pivot.reindex(columns=all_columns, fill_value=0)
+
+    # Add total per player
+    pivot["Total Contributed"] = pivot.sum(axis=1)
+
+    st.dataframe(pivot.style.format("£{:.2f}"))
+
+    # --- Net contribution per player (after expenses) ---
+    st.subheader("⚖️ Net Contribution per Player (After Match Expenses)")
+
+    # Calculate match-level net balance per player
+    player_counts = payment_df.groupby(["Venue", "Date"])["Name"].nunique().reset_index()
+    expenses_total = expenses_df.groupby(["Venue", "Date"])["Amount"].sum().reset_index()
+    match_income = payment_df.groupby(["Venue", "Date"])["Amount"].sum().reset_index()
+
+    merged = pd.merge(match_income, expenses_total, on=["Venue", "Date"], how="left").fillna(0)
+    merged = pd.merge(merged, player_counts, on=["Venue", "Date"], how="left").fillna(1)
+    merged["Venue_Date"] = merged["Venue"] + " - " + merged["Date"]
+
+    # Adjusted code to handle renamed columns 'Amount_x' and 'Amount_y'
+    if 'Amount_x' in merged.columns and 'Amount_y' in merged.columns:
+        merged["Per Player Net"] = (merged["Amount_x"] - merged["Amount_y"]) / merged["Name"]
+    else:
+        merged["Per Player Net"] = (merged["Amount"] - merged["Amount_y"]) / merged["Name"]
+
+    # Map per-player match net to pivot
+    net_map = dict(zip(merged["Venue_Date"], merged["Per Player Net"]))
+    net_contrib = pivot.copy()
+    for col in all_columns:
+        net = net_map.get(col, 0)
+        net_contrib[col] = net
+
+    net_contrib["Est. Player Net Total"] = net_contrib[list(all_columns)].sum(axis=1)
+
+    st.dataframe(net_contrib.style.format("£{:.2f}"))
+
+# --- Tab 5: Log ---
+with tab5:
+    st.subheader("All Player Payments")
+    st.dataframe(payment_df.sort_values(by=["Date", "Venue", "Name"]))
+    st.download_button("Download Payments CSV", payment_df.to_csv(index=False), "payments.csv")
+
+    st.subheader("All Expenses")
+    st.dataframe(expenses_df.sort_values(by=["Date", "Venue"]))
+    st.download_button("Download Expenses CSV", expenses_df.to_csv(index=False), "expenses.csv")
+
+    st.subheader("Other Income (Raffle, Fines)")
+    st.dataframe(other_income_df.sort_values(by=["Date", "Venue"]))
+    st.download_button("Download Other Income CSV", other_income_df.to_csv(index=False), "other_income.csv")
+# --- Tab 6: Clear Data ---
+with tab6:
+    st.subheader("⚠️ Danger Zone: Clear Data")
+
+    st.warning("Use these options carefully. Cleared data **cannot be recovered**.")
+
+    clear_option = st.selectbox(
+        "Select data to clear:",
+        ["Players", "Venues", "Payments", "Expenses", "Other Income", "Balance", "Clear All"]
+    )
+
+    confirm = st.checkbox("I understand that this action is irreversible.")
+
+    if st.button("Clear Selected Data"):
+        if not confirm:
+            st.error("Please confirm before clearing.")
+        else:
+            if clear_option == "Players":
+                players_df = pd.DataFrame(columns=["Name"])
+            elif clear_option == "Venues":
+                venues_df = pd.DataFrame(columns=["Venue", "Date"])
+            elif clear_option == "Payments":
+                payment_df = pd.DataFrame(columns=["Name", "Amount", "Category", "Venue", "Date"])
+            elif clear_option == "Expenses":
+                expenses_df = pd.DataFrame(columns=["Venue", "Date", "Amount", "Description"])
+            elif clear_option == "Other Income":
+                other_income_df = pd.DataFrame(columns=["Venue", "Date", "Raffle Income", "Fines"])
+            elif clear_option == "Balance":
+                balance_df = pd.DataFrame(columns=["Venue", "Date", "Total Player Income", "Other Income", "Total Expenses", "Net"])
+            elif clear_option == "Clear All":
+                players_df = pd.DataFrame(columns=["Name"])
+                venues_df = pd.DataFrame(columns=["Venue", "Date"])
+                payment_df = pd.DataFrame(columns=["Name", "Amount", "Category", "Venue", "Date"])
+                expenses_df = pd.DataFrame(columns=["Venue", "Date", "Amount", "Description"])
+                other_income_df = pd.DataFrame(columns=["Venue", "Date", "Raffle Income", "Fines"])
+                balance_df = pd.DataFrame(columns=["Venue", "Date", "Total Player Income", "Other Income", "Total Expenses", "Net"])
+
+            save_data(balance_df, payment_df, venues_df, players_df, expenses_df, other_income_df)
+            st.success(f"✅ {clear_option} data cleared.")
+            st.rerun()
