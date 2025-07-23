@@ -87,14 +87,7 @@ def recalculate_balance(payment_df, expenses_df, other_income_df):
 
 # --- App Setup ---
 st.set_page_config(page_title="Match Income Tracker", layout="wide")
-st.markdown(
-    """
-    <link rel="manifest" href="/manifest.json">
-    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
-    <meta name="theme-color" content="#4CAF50">
-    """,
-    unsafe_allow_html=True
-)
+
 st.title("🎯 Seaside Social Darts Management System")
 
 init_files()
