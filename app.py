@@ -10,9 +10,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.title("🎯 Custom Darts Management System")
-st.write("Welcome to your custom darts app!")
-
 # --- Constants ---
 BALANCE_FILE = "balance_sheet.csv"
 PAYMENT_FILE = "payment_sheet.csv"
