@@ -4,23 +4,7 @@ import os
 from datetime import datetime
 import streamlit.components.v1 as components
 
-# Inject manifest and icons for PWA support
-components.html(
-    """
-    <link rel="manifest" href="/manifest.json">
-    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
-    <link rel="apple-touch-icon" href="/icon-512.png">
-    <meta name="theme-color" content="#4CAF50">
-    """,
-    height=0
-)
 
-st.set_page_config(
-    page_title="🎯 Custom Darts App",  # Custom Title
-    page_icon="🎯",  # Custom Icon
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 # --- Constants ---
 BALANCE_FILE = "balance_sheet.csv"
@@ -86,9 +70,23 @@ def recalculate_balance(payment_df, expenses_df, other_income_df):
     return merged
 
 # --- App Setup ---
-st.set_page_config(page_title="Match Income Tracker", layout="wide")
+# Inject manifest and icons for PWA support
+components.html(
+    """
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+    <link rel="apple-touch-icon" href="/icon-512.png">
+    <meta name="theme-color" content="#4CAF50">
+    """,
+    height=0
+)
 
-st.title("🎯 Seaside Social Darts Management System")
+st.set_page_config(
+    page_title="🎯 Custom Darts App",  # Custom Title
+    page_icon="🎯",  # Custom Icon
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 init_files()
 balance_df, payment_df, venues_df, players_df, expenses_df, other_income_df = load_data()
